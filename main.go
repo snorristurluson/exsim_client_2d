@@ -14,10 +14,20 @@ import (
 	"time"
 	"math"
 	"github.com/snorristurluson/exsim_commands"
+	"image/color"
 )
 
 type SolarsystemViewer struct {
 	state *exsim_commands.State
+}
+
+func IsIn(item int64, array []int64) bool {
+	for _, value := range array {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }
 
 func NewSolarsystemViewer() (*SolarsystemViewer){
@@ -26,42 +36,48 @@ func NewSolarsystemViewer() (*SolarsystemViewer){
 	}
 }
 
-func (viewer* SolarsystemViewer) render(imd* imdraw.IMDraw, atlas* text.Atlas, thickness float64) ([]*text.Text) {
+func (viewer* SolarsystemViewer) render(imd* imdraw.IMDraw, atlas* text.Atlas, thickness float64, me int64) ([]*text.Text) {
 	labels := []*text.Text{}
 	shipsById := make(map[int64]exsim_commands.ShipData)
 	for _, ship := range(viewer.state.Ships) {
 		shipsById[ship.Owner] = ship
 	}
 
-	for _, ship := range(viewer.state.Ships) {
+	myShip := shipsById[me]
+	x := myShip.Position.X
+	y := myShip.Position.Y
+	pos := pixel.V(x,y)
+
+	imd.Color = colornames.Black
+	imd.Push(pos)
+	imd.Circle(10, thickness * 1.5)
+
+	for _, shipInRange := range myShip.InRange {
+		var shipColor color.Color
+		if IsIn(shipInRange, myShip.NewInRange) {
+			fmt.Printf("%v is new in range\n", shipInRange)
+			shipColor = colornames.Red
+		} else {
+			shipColor = colornames.Black
+		}
+
+		ship := shipsById[shipInRange]
 		x := ship.Position.X
 		y := ship.Position.Y
 		pos := pixel.V(x,y)
 
-		imd.Color = colornames.Black
 		imd.Push(pos)
+		imd.Color = shipColor
 		imd.Circle(10, thickness)
-
-		if false {
-			imd.Color = colornames.Gray
-			imd.Push(pos)
-			imd.Circle(100, thickness)
-
-		}
-		for _, shipInRange := range(ship.InRange) {
-			other, found := shipsById[shipInRange]
-			if found {
-				otherPos := pixel.V(other.Position.X, other.Position.Y)
-				imd.Color = colornames.Gray
-				imd.Push(pos, otherPos)
-				imd.Line(thickness)
-			}
-		}
 
 		label := text.New(pos, atlas)
 		label.Color = colornames.Black
 		fmt.Fprintf( label,"%v", ship.Owner)
 		labels = append(labels, label)
+	}
+
+	for _, gone := range myShip.GoneFromRange {
+		fmt.Printf("%v is gone from range\n", gone)
 	}
 
 	return labels
@@ -157,7 +173,7 @@ func run() {
 			numShips.Dot = numShips.Orig
 			fmt.Fprintf( numShips, "Ships: %v", len(viewer.state.Ships))
 			imd.Clear()
-			labels = viewer.render(imd, atlas, 1.0 / camZoom)
+			labels = viewer.render(imd, atlas, 1.0 / camZoom, client.userid)
 		default:
 			// No data received
 		}
