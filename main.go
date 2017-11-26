@@ -66,8 +66,8 @@ func (viewer* SolarsystemViewer) render(imd* imdraw.IMDraw, atlas* text.Atlas, t
 		y := ship.Position.Y
 		pos := pixel.V(x,y)
 
-		imd.Push(pos)
 		imd.Color = shipColor
+		imd.Push(pos)
 		imd.Circle(10, thickness)
 
 		label := text.New(pos, atlas)
