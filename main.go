@@ -116,6 +116,16 @@ func (client *Client) SetTargetLocation(loc exsim_commands.Vector3) {
 
 }
 
+func (client *Client) SetAttribute(attr string, value float64) {
+	msg := fmt.Sprintf(
+		`{"command": "setattribute", "params": {"attribute": "%v", "value": %v}}` + "\n",
+		attr, value)
+	client.connection.Write([]byte(msg))
+
+}
+
+
+
 func (client *Client) ReceiveLoop(cmdQueue chan *exsim_commands.State) {
 	decoder := json.NewDecoder(client.connection)
 	for {
@@ -179,12 +189,31 @@ func run() {
 		}
 		win.Clear(colornames.Skyblue)
 
-		if win.Pressed(pixelgl.KeySpace) {
+		if win.JustPressed(pixelgl.KeySpace) {
 			fmt.Println("Resetting camera")
 			pos := viewer.state.Ships["ship_1000"].Position
 			camPos.X = pos.X
 			camPos.Y = pos.Y
 			fmt.Printf("%v, %v\n", pos.X, pos.Y)
+		}
+
+		var sensorRange float64 = 0
+
+		if win.JustPressed(pixelgl.Key1) {
+			fmt.Println("Sensor range 100")
+			sensorRange = 100
+		}
+		if win.JustPressed(pixelgl.Key2) {
+			fmt.Println("Sensor range 200")
+			sensorRange = 200
+		}
+		if win.JustPressed(pixelgl.Key3) {
+			fmt.Println("Sensor range 300")
+			sensorRange = 300
+		}
+
+		if sensorRange > 0 {
+			client.SetAttribute("sensorrange", sensorRange)
 		}
 
 		if win.Pressed(pixelgl.KeyLeft) {
